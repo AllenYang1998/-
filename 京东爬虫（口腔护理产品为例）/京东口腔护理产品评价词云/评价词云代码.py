@@ -3,11 +3,12 @@ import numpy as np
 import pandas as pd
 from PIL import Image  # Image模块是在Python PIL图像处理常用的模块
 import jieba
+
 from wordcloud import WordCloud,STOPWORDS
 # 设置停用词
 stopwords_file = open('cn_stopwords.txt', 'r', encoding='utf-8')
 stopwords = [words.strip() for words in stopwords_file.readlines()]
-
+print(stopwords)
 # 设置停用词
 csv_file = '口腔护理产品评价.csv'
 try:
@@ -22,10 +23,26 @@ for type in dict(type_list):
     text = '\n'.join(list(df['评价']))
     wc = wordcloud.WordCloud(
         mask=shape,
-        font_path="simkai.ttf", background_color="white",
-        max_font_size=100,
-        stopwords=stopwords, width=1920, height=1080, scale=4)  # mask为图片背景，font_path为字体，若不设置可能乱码
-    cut_text = jieba.cut(text)
-    result = " ".join(cut_text)
-    wc.generate(result)
-    wc.to_file("./各产品词云/{}.jpg".format(type.replace('/','')))
+        font_path="simkai.ttf", background_color="white",max_words=50,prefer_horizontal=1.0,
+        max_font_size=100, width=1920, height=1080, scale=4)  # mask为图片背景，font_path为字体，若不设置可能乱码
+    cut_text = jieba.lcut(text)
+    word_count = {}
+    # 统计词频
+    for word in [word.strip() for word in cut_text]:
+        # 去停用词
+        if word not in stopwords:
+            if word in word_count:
+                word_count[word] += 1
+            else:
+                word_count[word] = 1
+    # generate_from_frequencies根据词频生成词云图
+    wc.generate_from_frequencies(word_count)
+    # 保村词云图
+    wc.to_file("./各产品词云/{}.jpg".format(type.replace('/', '')))
+    # 词频排序
+    word_count = sorted(word_count.items(), key=lambda x: x[1], reverse=True)
+    print(word_count)
+    # 保存排序后词频txt文件
+    with open("./各产品词云/{}.txt".format(type.replace('/','')),'w',encoding='utf-8') as f:
+        for i in word_count:
+            f.writelines(i[0]+":"+str(i[1])+'\n')
